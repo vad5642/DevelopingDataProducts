@@ -1,0 +1,116 @@
+Developing Data Products Project: Kelly Blue Book Search App
+========================================================
+width: 1440
+height: 900
+transition: none
+font-family: 'Helvetica'
+author: Vadim Galenchik
+date: 25/09/2015
+
+Introduction
+========================================================
+
+This Shiny App is for searching cars from Kelly Blue Book resale data for 2005 model year GM cars. 
+
+The dataset is from caret package (original: Kuiper, S. (2008). Introduction to Multiple Regression: How Much Is Your Car Worth?, Journal of Statistics Education, Vol. 16). This data frame contains the information of the suggested retail price and various characteristics of each car (Mileage, Cylinder, Doors, Cruise, Sound, Leather, brand and car body type). 
+
+Application allows setting the car characteristics searching the cars matching ones. 
+
+The project is published on  https://vad5642.shinyapps.io/GM_2005.
+
+Initial data set
+========================================================
+```{r, echo=FALSE}
+library(dplyr)
+```
+
+```{r}
+library(caret)
+data(cars)
+names(cars)
+```
+The first row of the initial dataset
+```{r}
+cars[1,]
+```
+
+
+Data set trasformations
+========================================================
+The initial data set is not friendly. To make the data presentation more convinient
+for users the following transformations were done
+- Brand names were combined to a single column
+- Car body types were combined to a single column
+- Values for Doors and Cylinders columns were transformed to factors
+- For Cruise, Sound, Leather values "0" and "1" were converted to "No" and "Yes" respectively
+
+```{r echo=FALSE}
+branded <- cars
+branded$Brand <- NA
+branded$Body <- NA
+txt <- "Init ..."
+
+# Prepare data
+branded <- mutate(branded, Brand = ifelse(Cadillac ==1, "Cadillac", 
+                               ifelse(Buick == 1, "Buick", 
+                                      ifelse(Chevy == 1, "Chevy",
+                                             ifelse(Pontiac==1, "Pontiac",
+                                                    ifelse(Saab==1, "Saab",
+                                                           ifelse(Saturn == 1, "Saturn", NA)))))))
+
+branded <- mutate(branded, Body = ifelse(convertible ==1, "convertible", 
+                               ifelse(coupe == 1, "coupe", 
+                                      ifelse(hatchback == 1, "hatchback",
+                                             ifelse(sedan==1, "sedan",
+                                                    ifelse(wagon==1, "wagon", NA))))))
+
+drop <- names(cars)[8:18]
+branded <- branded[,!(names(branded) %in% drop)]
+
+yes_no = function(x) ifelse(x == 1, "Yes", "No")
+branded <- mutate(branded, Cruise = yes_no(Cruise), 
+                           Sound = yes_no(Sound),
+                           Leather = yes_no(Leather))
+
+branded$Body <- as.factor(branded$Body)
+branded$Brand <- as.factor(branded$Brand)
+branded$Cruise <- as.factor(branded$Cruise)
+branded$Sound <- as.factor(branded$Sound)
+branded$Leather <- as.factor(branded$Leather)
+branded$Doors <- as.factor(branded$Doors)
+branded$Cylinder <- as.factor(branded$Cylinder)
+```
+```{r}
+names(branded)
+```
+The first row of the transformed dataset
+```{r}
+branded[1,]
+```
+
+User Interface
+=======================================================
+User interface for this Shiny application consists of following input widgets
+- Slidebar for price
+- Slidebar for mileage
+- Listbox for brand name
+- Checkbox group for car body configuration
+- Checkbox group for cylinder
+- Checkbox group for cruise
+- Checkbox group for doors
+- Checkbox group for sound
+- Checkbox group for leather
+
+Server returns output in the form of table containing dataset rows matching the input values or if there are no matches the string massage is returned by server.
+
+Tabs are used to separate documentation and user interface. 
+
+Server
+=======================================================
+The server part of the application does following activity
+- Reads dataset
+- Transforms initial data as it is described above
+- Configures and renders UI widgets
+- Catches UI widgets input and calculates output
+
+For data trasformations and calculations dplyr package is used.
